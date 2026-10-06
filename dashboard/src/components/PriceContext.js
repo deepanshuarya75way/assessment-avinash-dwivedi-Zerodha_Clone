@@ -9,10 +9,6 @@ import React, {
 
 import { watchlist, holdings, positions } from "../data/data";
 
-// ---------------------------------------------------------------------------
-// Mock market engine. No real market API is used: prices are generated locally
-// by a bounded random walk and refreshed on a fixed interval.
-// ---------------------------------------------------------------------------
 
 export const TICK_INTERVAL_MS = 2000; // how often prices update
 const TICK_SIZE = 0.05; // NSE-style minimum price step
@@ -24,8 +20,6 @@ const roundToTick = (value) =>
 
 const round2 = (value) => Math.round(value * 100) / 100;
 
-// Seed every known symbol once, using the first price we see for it as its
-// "open" (previous close) reference.
 const buildInitialState = () => {
   const open = {};
   [...watchlist, ...holdings, ...positions].forEach((item) => {
@@ -35,15 +29,12 @@ const buildInitialState = () => {
   return { open, price: { ...open } };
 };
 
-// Produce the next price for one symbol. Direction is random, with a gentle
-// pull back toward the open so prices go both up AND down and stay sensible.
 const nextPrice = (current, open) => {
   const pull = ((open - current) / open) * 0.15;
   const move = (Math.random() * 2 - 1) * MAX_STEP_PCT + pull * MAX_STEP_PCT;
 
   let next = roundToTick(current * (1 + move));
 
-  // Guarantee a visible tick so the UI is never "stuck" on the same price.
   if (next === roundToTick(current)) {
     next = current + (Math.random() < 0.5 ? -TICK_SIZE : TICK_SIZE);
   }
@@ -63,7 +54,6 @@ const PriceContext = createContext({
 export const PriceProvider = ({ children }) => {
   const [state, setState] = useState(buildInitialState);
 
-  // Periodic price updates.
   useEffect(() => {
     const id = setInterval(() => {
       setState((prev) => {
