@@ -78,8 +78,6 @@ export const PriceProvider = ({ children }) => {
     return () => clearInterval(id);
   }, []);
 
-  // Lets components (e.g. Holdings loaded from the DB) add symbols that the
-  // engine doesn't know about yet, so they start moving too.
   const registerSymbols = useCallback((items) => {
     setState((prev) => {
       const missing = items.filter(
