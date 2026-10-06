@@ -7,7 +7,6 @@ const crypto = require("node:crypto");
 const { promisify } = require("node:util");
 const dns = require("node:dns");
 
-// The local resolver on this machine refuses MongoDB Atlas SRV records.
 if (process.env.NODE_ENV !== "production") {
   dns.setServers(["1.1.1.1", "8.8.8.8"]);
 }

@@ -15,9 +15,6 @@ const formatINR = (value) =>
     maximumFractionDigits: 2,
   });
 
-// Checkout window for both BUY and SELL orders.
-// The price is the *current mock market price* (it keeps ticking while the
-// window is open) and the order value is always qty x that price.
 const BuyActionWindow = ({ uid, mode = "BUY" }) => {
   const { closeBuyWindow } = useContext(GeneralContext);
   const { getPrice } = usePrices();
