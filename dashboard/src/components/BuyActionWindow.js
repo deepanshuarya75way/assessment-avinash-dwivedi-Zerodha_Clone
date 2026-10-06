@@ -1,35 +1,73 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useContext, useState } from "react";
 
 import axios from "axios";
 
 import GeneralContext from "./GeneralContext";
+import { usePrices } from "./PriceContext";
 
 import "./BuyActionWindow.css";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3002";
 
-const BuyActionWindow = ({ uid }) => {
-  const [stockQuantity, setStockQuantity] = useState(1);
-  const [stockPrice, setStockPrice] = useState(0.0);
+const formatINR = (value) =>
+  value.toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
-  const handleBuyClick = () => {
-    axios.post(`${BACKEND_URL}/newOrder`, {
-      name: uid,
-      qty: stockQuantity,
-      price: stockPrice,
-      mode: "BUY",
-    });
+// Checkout window for both BUY and SELL orders.
+// The price is the *current mock market price* (it keeps ticking while the
+// window is open) and the order value is always qty x that price.
+const BuyActionWindow = ({ uid, mode = "BUY" }) => {
+  const { closeBuyWindow } = useContext(GeneralContext);
+  const { getPrice } = usePrices();
 
-    GeneralContext.closeBuyWindow();
-  };
+  const [stockQuantity, setStockQuantity] = useState("1");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleCancelClick = () => {
-    GeneralContext.closeBuyWindow();
+  const isBuy = mode === "BUY";
+  const livePrice = getPrice(uid);
+  const qty = parseInt(stockQuantity, 10);
+  const isQtyValid = Number.isInteger(qty) && qty > 0;
+  const orderValue = isQtyValid ? qty * livePrice : 0;
+
+  const handleConfirm = async () => {
+    if (!isQtyValid) {
+      setError("Enter a quantity of 1 or more.");
+      return;
+    }
+
+    setSubmitting(true);
+    setError("");
+
+    try {
+      // Price is locked at the moment the user confirms.
+      await axios.post(`${BACKEND_URL}/newOrder`, {
+        name: uid,
+        qty,
+        price: livePrice,
+        mode,
+      });
+      closeBuyWindow();
+    } catch (err) {
+      setError(err.response?.data?.message || "Could not place the order.");
+      setSubmitting(false);
+    }
   };
 
   return (
-    <div className="container" id="buy-window" draggable="true">
+    <div
+      className={`container order-window ${isBuy ? "mode-buy" : "mode-sell"}`}
+      id="buy-window"
+    >
+      <div className="order-header">
+        <h3>
+          {isBuy ? "Buy" : "Sell"} {uid} <span>NSE</span>
+        </h3>
+        <p>Market price (mock) ₹{formatINR(livePrice)}</p>
+      </div>
+
       <div className="regular-order">
         <div className="inputs">
           <fieldset>
@@ -38,33 +76,50 @@ const BuyActionWindow = ({ uid }) => {
               type="number"
               name="qty"
               id="qty"
+              min="1"
+              step="1"
               onChange={(e) => setStockQuantity(e.target.value)}
               value={stockQuantity}
+              autoFocus
             />
           </fieldset>
           <fieldset>
             <legend>Price</legend>
             <input
-              type="number"
+              type="text"
               name="price"
               id="price"
-              step="0.05"
-              onChange={(e) => setStockPrice(e.target.value)}
-              value={stockPrice}
+              value={formatINR(livePrice)}
+              disabled
+              readOnly
             />
           </fieldset>
         </div>
+
+        {error && <p className="order-error">{error}</p>}
       </div>
 
-      <div className="buttons">
-        <span>Margin required ₹140.65</span>
+      <div className="buttons order-buttons">
+        <span>
+          Order value <strong>₹{formatINR(orderValue)}</strong>
+        </span>
         <div>
-          <Link className="btn btn-blue" onClick={handleBuyClick}>
-            Buy
-          </Link>
-          <Link to="" className="btn btn-grey" onClick={handleCancelClick}>
+          <button
+            type="button"
+            className={`btn ${isBuy ? "btn-blue" : "btn-orange"}`}
+            onClick={handleConfirm}
+            disabled={submitting || !isQtyValid}
+          >
+            {submitting ? "Placing..." : isBuy ? "Buy" : "Sell"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-grey"
+            onClick={closeBuyWindow}
+            disabled={submitting}
+          >
             Cancel
-          </Link>
+          </button>
         </div>
       </div>
     </div>

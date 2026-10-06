@@ -236,17 +236,70 @@ app.get("/allPositions", async (req, res) => {
   res.json(allPositions);
 });
 
+app.get("/allOrders", async (req, res) => {
+  const allOrders = await OrdersModel.find({}).sort({ _id: -1 });
+  res.json(allOrders);
+});
+
+// Mock checkout: the client sends the (mock) price it showed the user.
+// No real market API or money is involved - this only records the order and
+// updates the user's holdings in the database.
 app.post("/newOrder", async (req, res) => {
-  let newOrder = new OrdersModel({
-    name: req.body.name,
-    qty: req.body.qty,
-    price: req.body.price,
-    mode: req.body.mode,
-  });
+  try {
+    const { name, mode } = req.body;
+    const qty = Number(req.body.qty);
+    const price = Number(req.body.price);
 
-  newOrder.save();
+    if (!name || !["BUY", "SELL"].includes(mode)) {
+      return res.status(400).json({ message: "Invalid order" });
+    }
+    if (!Number.isInteger(qty) || qty <= 0) {
+      return res.status(400).json({ message: "Quantity must be a whole number above 0" });
+    }
+    if (!Number.isFinite(price) || price <= 0) {
+      return res.status(400).json({ message: "Invalid price" });
+    }
 
-  res.send("Order saved!");
+    const holding = await HoldingsModel.findOne({ name });
+
+    if (mode === "SELL") {
+      if (!holding || holding.qty < qty) {
+        return res.status(400).json({
+          message: `You only hold ${holding ? holding.qty : 0} share(s) of ${name}`,
+        });
+      }
+
+      holding.qty -= qty;
+      if (holding.qty === 0) {
+        await HoldingsModel.deleteOne({ _id: holding._id });
+      } else {
+        await holding.save();
+      }
+    } else if (holding) {
+      // Weighted-average cost on repeat buys.
+      const totalQty = holding.qty + qty;
+      holding.avg = (holding.avg * holding.qty + price * qty) / totalQty;
+      holding.qty = totalQty;
+      holding.price = price;
+      await holding.save();
+    } else {
+      await new HoldingsModel({
+        name,
+        qty,
+        avg: price,
+        price,
+        net: "+0.00%",
+        day: "+0.00%",
+      }).save();
+    }
+
+    const newOrder = await new OrdersModel({ name, qty, price, mode }).save();
+
+    return res.status(201).json({ message: "Order saved!", order: newOrder });
+  } catch (error) {
+    console.error("Order error:", error);
+    return res.status(500).json({ message: "Order failed" });
+  }
 });
 
 app.post("/signup", async (req, res) => {

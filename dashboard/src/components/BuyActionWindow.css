@@ -219,3 +219,72 @@
     color: #fff;
   }
   
+
+/* ---- Checkout window (Buy / Sell) ---- */
+.container.order-window {
+  height: auto;
+  cursor: default;
+  padding-bottom: 20px;
+}
+
+.order-header {
+  padding: 16px;
+  color: #fff;
+  background: #4184f3;
+  border-top-left-radius: var(--radius);
+  border-top-right-radius: var(--radius);
+}
+
+.order-window.mode-sell .order-header {
+  background: #ff5722;
+}
+
+.order-header h3 {
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0 0 6px;
+}
+
+.order-header h3 span {
+  font-size: 0.6rem;
+}
+
+.order-header p {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 300;
+}
+
+.order-window .inputs fieldset:last-of-type legend {
+  color: inherit;
+}
+
+.order-buttons {
+  top: 0;
+  margin-top: 16px;
+}
+
+.order-buttons button.btn {
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.order-buttons button.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-orange {
+  background: #ff5722;
+}
+
+.btn-orange:hover {
+  background: #ff7a50;
+}
+
+.order-error {
+  margin: 0;
+  color: #df514c;
+  font-size: 0.8rem;
+}
