@@ -5,7 +5,7 @@ import "./Signup.css";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3002";
 const DASHBOARD_URL =
-  process.env.REACT_APP_DASHBOARD_URL || "http://localhost:3000";
+  process.env.REACT_APP_DASHBOARD_URL || "http://localhost:3001";
 
 const investmentOptions = [
   {
